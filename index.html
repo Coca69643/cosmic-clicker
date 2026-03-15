@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Cosmic Clicker Chronicles</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+  width:100%;height:100%;overflow:hidden;background:#0a0818;
+  font-family:'Trebuchet MS',sans-serif;
+  touch-action:none;user-select:none;-webkit-user-select:none;
+}
+
+/* ============================================================
+   ROTATE SCREEN (portrait guard)
+   ============================================================ */
+#rotate-msg{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:#0a0818;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+}
+@media (orientation:portrait){
+  #rotate-msg{display:flex;}
+  #game-root{display:none;}
+}
+@media (orientation:landscape){
+  #rotate-msg{display:none;}
+  #game-root{display:block;}
+}
+.rotate-icon{font-size:56px;animation:rotateAnim 2s ease-in-out infinite;}
+@keyframes rotateAnim{
+  0%,100%{transform:rotate(-20deg);}
+  50%{transform:rotate(20deg);}
+}
+.rotate-text{color:rgba(255,255,255,0.8);font-size:18px;text-align:center;padding:0 32px;}
+
+/* ============================================================
+   AURORA BACKGROUND (CSS only)
+   ============================================================ */
+#aurora-bg{
+  position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 20% 50%,#1a0a3e 0%,#0a0818 60%);
+}
+.aurora-layer{
+  position:absolute;border-radius:50%;filter:blur(60px);opacity:0.35;
+  animation:auroraDrift 8s ease-in-out infinite alternate;
+}
+.aurora-1{width:60%;height:120%;left:-10%;top:-20%;
+  background:radial-gradient(ellipse,#4a2cbb,transparent 70%);
+  animation-duration:9s;}
+.aurora-2{width:50%;height:100%;right:-5%;top:-10%;
+  background:radial-gradient(ellipse,#2c6fbb,transparent 70%);
+  animation-duration:11s;animation-delay:-3s;}
+.aurora-3{width:40%;height:80%;left:25%;bottom:-20%;
+  background:radial-gradient(ellipse,#bb6c2c,transparent 70%);
+  animation-duration:13s;animation-delay:-5s;}
+.aurora-4{width:30%;height:60%;left:40%;top:0%;
+  background:radial-gradient(ellipse,#6c2cbb,transparent 70%);
+  animation-duration:7s;animation-delay:-2s;}
+@keyframes auroraDrift{
+  0%{transform:translateX(0) translateY(0) scale(1);}
+  100%{transform:translateX(5%) translateY(3%) scale(1.08);}
+}
+/* Stars */
+#stars-canvas{position:fixed;inset:0;z-index:1;pointer-events:none;}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+#game-root{position:fixed;inset:0;z-index:10;}
+.screen{
+  position:absolute;inset:0;
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.screen.active{display:flex;}
+
+/* ============================================================
+   GLASS PANEL
+   ============================================================ */
+.glass{
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+/* ============================================================
+   SCREEN: MENU
+   ============================================================ */
+#menu-screen{gap:0;}
+.menu-panel{
+  padding:28px 40px 32px;
+  display:flex;flex-direction:column;
+  align-items:center;gap:20px;
+  min-width:340px;max-width:90vw;
+}
+.game-title{
+  font-size:clamp(24px,5vw,38px);
+  font-weight:900;letter-spacing:3px;
+  text-transform:uppercase;text-align:center;
+  line-height:1.15;
+}
+.title-line1{
+  color:#7dd6ff;
+  text-shadow:0 0 20px #7dd6ff,0 0 40px #4ab8ff,0 2px 0 rgba(0,0,0,0.5);
+}
+.title-line2{
+  color:#ffd966;
+  text-shadow:0 0 20px #ffd966,0 0 40px #ffb700,0 2px 0 rgba(0,0,0,0.5);
+}
+.menu-buttons{
+  display:flex;flex-direction:column;
+  align-items:center;gap:12px;width:100%;
+}
+.btn-play{
+  width:100%;padding:16px 0;
+  background:linear-gradient(135deg,#c8860a,#f0b030,#c8860a);
+  border:2px solid #ffd966;
+  border-radius:14px;
+  font-size:clamp(16px,3vw,22px);
+  font-weight:800;letter-spacing:3px;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,0.6);
+  box-shadow:0 0 24px rgba(240,176,48,0.4),inset 0 1px 0 rgba(255,255,255,0.25);
+  cursor:pointer;transition:transform .1s,box-shadow .1s;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.btn-play:active{transform:scale(0.97);box-shadow:0 0 12px rgba(240,176,48,0.3);}
+.menu-row{display:flex;gap:12px;width:100%;}
+.btn-secondary{
+  flex:1;padding:13px 0;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:14px;
+  font-size:clamp(12px,2.2vw,16px);
+  font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.85);
+  cursor:pointer;transition:background .15s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.btn-secondary:active{background:rgba(255,255,255,0.15);transform:scale(0.97);}
+.menu-version{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:1px;}
+
+/* ============================================================
+   SCREEN: GAME
+   ============================================================ */
+#game-screen{
+  flex-direction:column;
+  justify-content:space-between;
+  padding:8px 10px;
+}
+
+/* TOP BAR */
+.top-bar{
+  display:flex;gap:8px;width:100%;
+  justify-content:space-between;align-items:flex-start;
+}
+.resource-box{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;flex:1;
+  border-radius:14px;
+  background:rgba(0,0,0,0.35);
+  border:1px solid rgba(255,255,255,0.12);
+}
+.resource-icon{font-size:22px;line-height:1;}
+.resource-info{display:flex;flex-direction:column;gap:1px;}
+.resource-label{font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,0.5);text-transform:uppercase;}
+.resource-value{font-size:clamp(15px,2.5vw,20px);font-weight:800;color:#7dd6ff;letter-spacing:1px;}
+.resource-rate{font-size:10px;color:rgba(125,214,255,0.55);letter-spacing:0.5px;}
+.resource-box.stellar .resource-value{color:#ffd966;}
+.resource-box.stellar .resource-rate{color:rgba(255,217,102,0.55);}
+
+/* CENTER */
+.game-center{
+  flex:1;display:flex;align-items:center;
+  justify-content:center;gap:12px;
+  padding:4px 0;
+}
+/* CLICKER */
+.clicker-area{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;
+}
+.clicker-btn-wrap{position:relative;}
+.clicker-btn{
+  width:clamp(120px,22vw,180px);
+  height:clamp(120px,22vw,180px);
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,
+    rgba(255,255,255,0.15) 0%,
+    rgba(100,150,255,0.06) 40%,
+    rgba(60,100,200,0.04) 100%);
+  border:2px solid rgba(125,214,255,0.4);
+  box-shadow:0 0 30px rgba(125,214,255,0.2),
+             0 0 60px rgba(74,72,187,0.15),
+             inset 0 0 30px rgba(125,214,255,0.05);
+  cursor:pointer;
+  transition:transform .08s,box-shadow .08s;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.clicker-btn:active{
+  transform:scale(0.93);
+  box-shadow:0 0 50px rgba(125,214,255,0.5),
+             0 0 20px rgba(255,217,102,0.3),
+             inset 0 0 20px rgba(125,214,255,0.1);
+}
+.clicker-inner{
+  width:80%;height:80%;border-radius:50%;
+  background:conic-gradient(
+    from 0deg,
+    #ffd966 0deg, #ff9900 60deg,
+    #7dd6ff 120deg, #4a72bb 180deg,
+    #9c4abb 240deg, #ffd966 360deg
+  );
+  animation:spinGalaxy 8s linear infinite;
+  filter:blur(2px) brightness(1.2);
+  box-shadow:0 0 20px rgba(255,217,102,0.4);
+}
+@keyframes spinGalaxy{to{transform:rotate(360deg);}}
+.clicker-crystal{
+  position:absolute;inset:0;
+  background:radial-gradient(circle at 35% 30%,
+    rgba(255,255,255,0.6) 0%,
+    transparent 40%),
+    linear-gradient(135deg,transparent 40%,rgba(125,214,255,0.15) 100%);
+  border-radius:50%;
+  pointer-events:none;
+}
+
+.clicker-label{
+  font-size:11px;letter-spacing:2px;
+  color:rgba(255,255,255,0.45);text-align:center;text-transform:uppercase;
+}
+.cps-display{
+  font-size:clamp(12px,2vw,15px);font-weight:700;
+  color:rgba(125,214,255,0.8);letter-spacing:1px;
+}
+
+/* UPGRADES SIDEBAR */
+.upgrades-panel{
+  display:flex;flex-direction:column;
+  gap:7px;
+  overflow-y:auto;
+  max-height:calc(100vh - 140px);
+  padding:4px 2px;
+  width:clamp(140px,28vw,220px);
+  scrollbar-width:none;
+}
+.upgrades-panel::-webkit-scrollbar{display:none;}
+.upgrade-card{
+  padding:10px 12px;border-radius:14px;cursor:pointer;
+  background:rgba(0,0,0,0.35);
+  border:1px solid rgba(255,255,255,0.1);
+  transition:background .15s,border-color .15s,transform .08s;
+  display:flex;flex-direction:column;gap:4px;
+}
+.upgrade-card.affordable{
+  border-color:rgba(125,214,255,0.35);
+  background:rgba(125,214,255,0.06);
+}
+.upgrade-card.affordable:active{transform:scale(0.97);}
+.upgrade-card.maxed{
+  border-color:rgba(255,217,102,0.4);
+  background:rgba(255,217,102,0.05);
+  opacity:0.75;
+}
+.upgrade-card.locked{opacity:0.4;cursor:default;}
+.upgrade-header{display:flex;align-items:center;gap:6px;}
+.upgrade-icon{font-size:18px;line-height:1;}
+.upgrade-name{font-size:clamp(10px,1.8vw,13px);font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.5px;}
+.upgrade-desc{font-size:10px;color:rgba(255,255,255,0.45);line-height:1.3;}
+.upgrade-cost{
+  font-size:11px;font-weight:700;
+  color:#7dd6ff;display:flex;align-items:center;gap:3px;
+}
+.upgrade-cost.gold{color:#ffd966;}
+.upgrade-level{
+  font-size:10px;color:rgba(255,255,255,0.3);
+  display:flex;align-items:center;gap:3px;
+}
+.upgrade-level .lv-bar{
+  height:3px;border-radius:2px;
+  background:rgba(255,255,255,0.1);flex:1;overflow:hidden;
+}
+.upgrade-level .lv-fill{
+  height:100%;border-radius:2px;
+  background:linear-gradient(90deg,#7dd6ff,#ffd966);
+  transition:width .3s;
+}
+
+/* PRESTIGE / STELLAR PANEL */
+.stellar-panel{
+  display:flex;flex-direction:column;
+  gap:7px;overflow-y:auto;
+  max-height:calc(100vh - 140px);
+  padding:4px 2px;
+  width:clamp(140px,28vw,220px);
+  scrollbar-width:none;
+}
+.stellar-panel::-webkit-scrollbar{display:none;}
+.stellar-card{
+  padding:10px 12px;border-radius:14px;cursor:pointer;
+  background:rgba(0,0,0,0.35);
+  border:1px solid rgba(255,217,102,0.12);
+  transition:background .15s,border-color .15s,transform .08s;
+  display:flex;flex-direction:column;gap:4px;
+}
+.stellar-card.affordable{
+  border-color:rgba(255,217,102,0.45);
+  background:rgba(255,217,102,0.06);
+}
+.stellar-card.affordable:active{transform:scale(0.97);}
+.stellar-card.purchased{
+  border-color:rgba(255,217,102,0.6);
+  background:rgba(255,217,102,0.1);
+  opacity:0.85;cursor:default;
+}
+.stellar-card.locked{opacity:0.35;cursor:default;}
+
+/* BOTTOM BAR */
+.bottom-bar{
+  display:flex;gap:8px;width:100%;
+  justify-content:center;align-items:center;
+}
+.tab-btn{
+  padding:10px 0;flex:1;max-width:120px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  font-size:11px;font-weight:700;letter-spacing:1.5px;
+  color:rgba(255,255,255,0.5);
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.tab-btn .tab-icon{font-size:16px;}
+.tab-btn.active{
+  background:rgba(125,214,255,0.1);
+  border-color:rgba(125,214,255,0.4);
+  color:rgba(125,214,255,0.9);
+}
+.btn-menu-back{
+  padding:10px 16px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  font-size:11px;font-weight:700;letter-spacing:1px;
+  color:rgba(255,255,255,0.4);cursor:pointer;
+}
+
+/* ============================================================
+   FLOATING NUMBERS
+   ============================================================ */
+.float-num{
+  position:fixed;pointer-events:none;z-index:100;
+  font-size:clamp(14px,2.5vw,20px);font-weight:800;
+  color:#ffd966;
+  text-shadow:0 0 10px rgba(255,217,102,0.6);
+  animation:floatUp 0.9s ease-out forwards;
+}
+@keyframes floatUp{
+  0%{opacity:1;transform:translateY(0) scale(1);}
+  100%{opacity:0;transform:translateY(-60px) scale(0.8);}
+}
+
+/* ============================================================
+   SCREEN: SETTINGS / CREDITS
+   ============================================================ */
+.modal-panel{
+  padding:24px 28px;max-width:88vw;width:340px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.modal-title{
+  font-size:clamp(16px,3vw,22px);font-weight:800;
+  letter-spacing:3px;text-transform:uppercase;
+  color:#7dd6ff;text-shadow:0 0 12px #7dd6ff;
+  text-align:center;
+}
+.modal-body{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;text-align:center;}
+.modal-body a{color:#ffd966;text-decoration:none;}
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+.setting-label{font-size:13px;color:rgba(255,255,255,0.75);letter-spacing:1px;}
+.toggle{
+  width:44px;height:24px;border-radius:12px;
+  background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
+  position:relative;cursor:pointer;transition:background .2s;
+}
+.toggle.on{background:rgba(125,214,255,0.4);border-color:rgba(125,214,255,0.6);}
+.toggle::after{
+  content:'';position:absolute;
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;top:2px;left:2px;
+  transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,0.4);
+}
+.toggle.on::after{transform:translateX(20px);}
+.btn-close{
+  width:100%;padding:13px;border-radius:14px;
+  background:rgba(125,214,255,0.12);
+  border:1px solid rgba(125,214,255,0.3);
+  font-size:14px;font-weight:700;letter-spacing:2px;
+  color:rgba(125,214,255,0.85);cursor:pointer;
+  transition:background .15s;
+}
+.btn-close:active{background:rgba(125,214,255,0.22);}
+
+/* ============================================================
+   PRESTIGE CONFIRM
+   ============================================================ */
+.prestige-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.7);
+  align-items:center;justify-content:center;
+}
+.prestige-overlay.show{display:flex;}
+.prestige-box{
+  padding:28px 32px;max-width:85vw;width:320px;
+  display:flex;flex-direction:column;gap:14px;text-align:center;
+}
+.prestige-title{
+  font-size:22px;font-weight:900;letter-spacing:3px;
+  color:#ffd966;text-shadow:0 0 16px #ffd966;
+}
+.prestige-desc{font-size:13px;color:rgba(255,255,255,0.75);line-height:1.5;}
+.prestige-reward{
+  font-size:18px;font-weight:800;color:#ffd966;
+  text-shadow:0 0 10px rgba(255,217,102,0.5);
+}
+.prestige-warn{font-size:11px;color:rgba(255,80,80,0.8);}
+.prestige-btns{display:flex;gap:10px;}
+.btn-confirm{
+  flex:1;padding:13px;border-radius:14px;
+  background:linear-gradient(135deg,#c8860a,#f0b030);
+  border:1px solid #ffd966;
+  font-size:14px;font-weight:800;letter-spacing:2px;color:#fff;
+  cursor:pointer;
+}
+.btn-cancel{
+  flex:1;padding:13px;border-radius:14px;
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);
+  font-size:14px;font-weight:700;color:rgba(255,255,255,0.6);
+  cursor:pointer;
+}
+
+/* ============================================================
+   NOTIFICATION TOAST
+   ============================================================ */
+#toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  padding:10px 20px;border-radius:12px;z-index:300;
+  background:rgba(125,214,255,0.15);
+  border:1px solid rgba(125,214,255,0.3);
+  backdrop-filter:blur(12px);
+  font-size:13px;font-weight:700;color:rgba(125,214,255,0.9);
+  letter-spacing:1px;white-space:nowrap;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+#toast.show{opacity:1;}
+
+/* Prestige glow on clicker */
+.prestige-1 .clicker-inner{animation-duration:6s;filter:blur(2px) brightness(1.4) hue-rotate(30deg);}
+.prestige-2 .clicker-inner{animation-duration:4s;filter:blur(2px) brightness(1.6) hue-rotate(60deg);}
+.prestige-3 .clicker-inner{animation-duration:3s;filter:blur(2px) brightness(1.8) hue-rotate(120deg);}
+
+/* ============================================================
+   OFFLINE EARNINGS OVERLAY
+   ============================================================ */
+#offline-overlay{
+  display:none;position:fixed;inset:0;z-index:250;
+  background:rgba(0,0,0,0.75);
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+#offline-overlay.show{display:flex;}
+
+.offline-box{
+  padding:28px 32px 24px;
+  max-width:82vw;width:360px;
+  display:flex;flex-direction:column;
+  align-items:center;gap:14px;
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+
+/* Shimmer sweep animation on the panel */
+.offline-box::before{
+  content:'';position:absolute;inset:0;border-radius:20px;
+  background:linear-gradient(105deg,
+    transparent 30%,
+    rgba(255,217,102,0.08) 50%,
+    transparent 70%);
+  animation:shimmerSweep 2.5s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes shimmerSweep{
+  0%{transform:translateX(-100%);}
+  100%{transform:translateX(100%);}
+}
+
+.offline-stars{
+  font-size:28px;letter-spacing:4px;
+  animation:starPop 0.6s ease-out both;
+}
+@keyframes starPop{
+  0%{transform:scale(0);opacity:0;}
+  70%{transform:scale(1.2);}
+  100%{transform:scale(1);opacity:1;}
+}
+
+.offline-title{
+  font-size:clamp(16px,3.5vw,22px);
+  font-weight:900;letter-spacing:3px;text-transform:uppercase;
+  color:#ffd966;
+  text-shadow:0 0 16px rgba(255,217,102,0.7);
+  animation:slideDown 0.4s ease-out 0.1s both;
+}
+.offline-subtitle{
+  font-size:12px;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,0.45);
+  animation:slideDown 0.4s ease-out 0.15s both;
+}
+@keyframes slideDown{
+  0%{transform:translateY(-12px);opacity:0;}
+  100%{transform:translateY(0);opacity:1;}
+}
+
+.offline-duration{
+  font-size:12px;color:rgba(255,255,255,0.4);
+  letter-spacing:1px;
+  animation:fadeIn 0.4s ease-out 0.2s both;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+/* Big dust earned display */
+.offline-reward{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:16px 24px;
+  border-radius:16px;
+  background:rgba(255,217,102,0.07);
+  border:1px solid rgba(255,217,102,0.2);
+  width:100%;
+  animation:rewardPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s both;
+}
+@keyframes rewardPop{
+  0%{transform:scale(0.7);opacity:0;}
+  100%{transform:scale(1);opacity:1;}
+}
+.offline-reward-icon{font-size:32px;line-height:1;}
+.offline-reward-label{font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.45);text-transform:uppercase;}
+.offline-reward-value{
+  font-size:clamp(22px,5vw,34px);font-weight:900;
+  color:#ffd966;letter-spacing:1px;
+  text-shadow:0 0 20px rgba(255,217,102,0.5);
+}
+.offline-reward-rate{font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:0.5px;}
+
+/* Cap warning */
+.offline-cap-note{
+  font-size:11px;color:rgba(255,120,80,0.7);
+  letter-spacing:0.5px;line-height:1.4;
+  animation:fadeIn 0.4s ease-out 0.5s both;
+}
+.offline-cap-note.hidden{display:none;}
+
+/* Collect button */
+.btn-collect{
+  width:100%;padding:15px;
+  background:linear-gradient(135deg,#c8860a,#f0b030,#c8860a);
+  border:2px solid #ffd966;border-radius:14px;
+  font-size:clamp(14px,2.5vw,18px);font-weight:800;
+  letter-spacing:3px;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,0.5);
+  box-shadow:0 0 24px rgba(240,176,48,0.35),
+             inset 0 1px 0 rgba(255,255,255,0.25);
+  cursor:pointer;
+  animation:collectPulse 1.5s ease-in-out 0.8s infinite;
+  transition:transform .08s,box-shadow .08s;
+}
+.btn-collect:active{transform:scale(0.97);}
+@keyframes collectPulse{
+  0%,100%{box-shadow:0 0 24px rgba(240,176,48,0.35),inset 0 1px 0 rgba(255,255,255,0.25);}
+  50%{box-shadow:0 0 40px rgba(240,176,48,0.6),inset 0 1px 0 rgba(255,255,255,0.25);}
+}
+
+/* Particle burst canvas inside the modal */
+#offline-particles{
+  position:absolute;inset:0;pointer-events:none;border-radius:20px;
+}
+</style>
+</head>
+<body>
+
+<!-- PORTRAIT WARNING -->
+<div id="rotate-msg">
+  <div class="rotate-icon">📱</div>
+  <div class="rotate-text">Gire seu dispositivo para o modo paisagem para jogar Cosmic Clicker Chronicles!</div>
+</div>
+
+<!-- STARS -->
+<canvas id="stars-canvas"></canvas>
+
+<!-- AURORA -->
+<div id="aurora-bg">
+  <div class="aurora-layer aurora-1"></div>
+  <div class="aurora-layer aurora-2"></div>
+  <div class="aurora-layer aurora-3"></div>
+  <div class="aurora-layer aurora-4"></div>
+</div>
+
+<!-- GAME ROOT -->
+<div id="game-root">
+
+  <!-- ======================================================
+       MENU SCREEN
+       ====================================================== -->
+  <div id="menu-screen" class="screen active">
+    <div class="glass menu-panel">
+      <div class="game-title">
+        <div class="title-line1">COSMIC CLICKER</div>
+        <div class="title-line2">CHRONICLES</div>
+      </div>
+      <div class="menu-buttons">
+        <button class="btn-play" id="btn-play">▶&nbsp; PLAY</button>
+        <div class="menu-row">
+          <button class="btn-secondary" id="btn-settings">⚙ SETTINGS</button>
+          <button class="btn-secondary" id="btn-credits">ⓘ CREDITS</button>
+        </div>
+      </div>
+      <div class="menu-version">v1.0 — Duck Dream Studios 🇧🇷</div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       GAME SCREEN
+       ====================================================== -->
+  <div id="game-screen" class="screen">
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="resource-box">
+        <div class="resource-icon">☁️</div>
+        <div class="resource-info">
+          <div class="resource-label">COSMIC DUST</div>
+          <div class="resource-value" id="dust-val">0</div>
+          <div class="resource-rate" id="dust-rate">+0 /s</div>
+        </div>
+      </div>
+      <div class="resource-box stellar">
+        <div class="resource-icon">🌟</div>
+        <div class="resource-info">
+          <div class="resource-label">STELLAR ENERGY</div>
+          <div class="resource-value" id="stellar-val">0</div>
+          <div class="resource-rate" id="prestige-count">Prestígios: 0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="game-center">
+
+      <!-- LEFT: upgrade list -->
+      <div class="upgrades-panel" id="upgrades-panel"></div>
+
+      <!-- CLICKER -->
+      <div class="clicker-area">
+        <div class="clicker-btn-wrap">
+          <div class="clicker-btn" id="clicker-btn">
+            <div class="clicker-inner"></div>
+            <div class="clicker-crystal"></div>
+          </div>
+        </div>
+        <div class="clicker-label">TOQUE PARA COLETAR</div>
+        <div class="cps-display" id="cps-display">0 Dust/toque</div>
+      </div>
+
+      <!-- RIGHT: stellar upgrades -->
+      <div class="stellar-panel" id="stellar-panel"></div>
+
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottom-bar">
+      <button class="btn-menu-back" id="btn-back">◀ MENU</button>
+      <button class="tab-btn active" id="tab-upgrades" data-tab="upgrades">
+        <span class="tab-icon">⚙️</span>UPGRADES
+      </button>
+      <button class="tab-btn" id="tab-stellar" data-tab="stellar">
+        <span class="tab-icon">🏆</span>RANKINGS
+      </button>
+      <button class="tab-btn" id="tab-prestige" data-tab="prestige">
+        <span class="tab-icon">✨</span>PRESTÍGIO
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       SETTINGS SCREEN
+       ====================================================== -->
+  <div id="settings-screen" class="screen">
+    <div class="glass modal-panel">
+      <div class="modal-title">⚙ SETTINGS</div>
+      <div class="setting-row">
+        <span class="setting-label">PARTÍCULAS</span>
+        <div class="toggle on" id="toggle-particles"></div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">AURORA</span>
+        <div class="toggle on" id="toggle-aurora"></div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">SOM</span>
+        <div class="toggle" id="toggle-sound"></div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">NOTAÇÕES CIENTÍFICAS</span>
+        <div class="toggle on" id="toggle-notation"></div>
+      </div>
+      <button class="btn-close" id="settings-close">FECHAR</button>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       CREDITS SCREEN
+       ====================================================== -->
+  <div id="credits-screen" class="screen">
+    <div class="glass modal-panel">
+      <div class="modal-title">ⓘ CREDITS</div>
+      <div class="modal-body">
+        <p><strong style="color:#ffd966">Cosmic Clicker Chronicles</strong></p>
+        <p style="margin:10px 0">Desenvolvido por<br>
+        <strong style="color:#7dd6ff">Duck Dream Studios 🇧🇷</strong></p>
+        <p style="margin:10px 0">Design & Programação<br>
+        <strong>Coca69643</strong></p>
+        <p style="margin:10px 0 4px">
+          <a href="https://coca69643.itch.io/" target="_blank">🎮 itch.io</a> &nbsp;·&nbsp;
+          <a href="https://youtube.com/@duckdreamstudios" target="_blank">▶ YouTube</a>
+        </p>
+        <p style="margin-top:12px;font-size:11px;color:rgba(255,255,255,0.35)">
+          Feito com HTML5 · Three.js free<br>Single-file build ❤️
+        </p>
+      </div>
+      <button class="btn-close" id="credits-close">FECHAR</button>
+    </div>
+  </div>
+
+</div><!-- /game-root -->
+
+<!-- OFFLINE EARNINGS OVERLAY -->
+<div id="offline-overlay">
+  <div class="glass offline-box">
+    <canvas id="offline-particles"></canvas>
+    <div class="offline-stars">⭐ 💫 ⭐</div>
+    <div class="offline-title">BEM-VINDO DE VOLTA!</div>
+    <div class="offline-subtitle">O universo trabalhou enquanto você dormia</div>
+    <div class="offline-duration" id="offline-duration">Ausente por 0 minutos</div>
+    <div class="offline-reward">
+      <div class="offline-reward-icon">☁️</div>
+      <div class="offline-reward-label">COSMIC DUST COLETADO</div>
+      <div class="offline-reward-value" id="offline-amount">0</div>
+      <div class="offline-reward-rate" id="offline-rate-info">— /s durante ausência</div>
+    </div>
+    <div class="offline-cap-note hidden" id="offline-cap-note">
+      ⏰ Limite atingido — ganhos offline limitados a 4 horas
+    </div>
+    <button class="btn-collect" id="btn-collect">☁️ &nbsp;COLETAR DUST</button>
+  </div>
+</div>
+
+<!-- PRESTIGE CONFIRM OVERLAY -->
+<div class="prestige-overlay" id="prestige-overlay">
+  <div class="glass prestige-box">
+    <div class="prestige-title">✨ PRESTÍGIO</div>
+    <div class="prestige-desc">Reiniciar toda a sua Poeira Cósmica e upgrades em troca de Energia Estelar permanente que multiplica tudo para sempre.</div>
+    <div class="prestige-reward" id="prestige-reward-text">+0 ⭐ Stellar Energy</div>
+    <div class="prestige-warn">⚠ Todo Cosmic Dust e upgrades serão resetados.</div>
+    <div class="prestige-btns">
+      <button class="btn-confirm" id="btn-prestige-confirm">CONFIRMAR</button>
+      <button class="btn-cancel"  id="btn-prestige-cancel">CANCELAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+//  STARS CANVAS
+// ============================================================
+(function(){
+  const c = document.getElementById('stars-canvas');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function init(){
+    c.width  = window.innerWidth;
+    c.height = window.innerHeight;
+    stars = Array.from({length:120},()=>({
+      x:Math.random()*c.width,
+      y:Math.random()*c.height,
+      r:Math.random()*1.5+0.3,
+      a:Math.random(),
+      da:(Math.random()*0.004+0.001)*(Math.random()<0.5?1:-1)
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s=>{
+      s.a = Math.max(0.1,Math.min(1,s.a+s.da));
+      if(s.a<=0.1||s.a>=1) s.da*=-1;
+      ctx.beginPath();
+      ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${s.a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',init);
+  init(); draw();
+})();
+
+// ============================================================
+//  GAME STATE
+// ============================================================
+const GS = {
+  dust:       0,
+  totalDust:  0,
+  stellar:    0,
+  prestigeCount: 0,
+  clickPower: 1,
+  dustPerSec: 0,
+  stellarMult: 1,    // prestige multiplier
+  upgrades:   {},    // { id: level }
+  stellarUpgrades: {},
+  settings: { particles:true, aurora:true, sound:false, notation:true }
+};
+
+// ============================================================
+//  UPGRADE DEFINITIONS
+// ============================================================
+const UPGRADES = [
+  {id:'nebula_tap',    icon:'🌌', name:'Nebula Tap',     desc:'Aumenta Dust por toque',
+   baseCost:10,   costMult:1.15, maxLv:50, effect:g=>g.clickPower += 1},
+  {id:'star_forge',   icon:'⭐', name:'Star Forge',      desc:'+0.5 Dust/s por nível',
+   baseCost:25,   costMult:1.18, maxLv:40, effect:g=>g.dustPerSec += 0.5},
+  {id:'quantum_lens', icon:'🔭', name:'Quantum Lens',    desc:'Duplica Dust por toque',
+   baseCost:200,  costMult:1.3,  maxLv:10, effect:g=>g.clickPower *= 2},
+  {id:'void_engine',  icon:'🌀', name:'Void Engine',     desc:'+5 Dust/s por nível',
+   baseCost:500,  costMult:1.25, maxLv:30, effect:g=>g.dustPerSec += 5},
+  {id:'pulsar_beam',  icon:'💫', name:'Pulsar Beam',     desc:'+15 Dust/s por nível',
+   baseCost:2000, costMult:1.3,  maxLv:20, effect:g=>g.dustPerSec += 15},
+  {id:'cosmic_rift',  icon:'🕳️', name:'Cosmic Rift',     desc:'+0.1 Dust/s × total',
+   baseCost:8000, costMult:1.4,  maxLv:15, effect:g=>g.dustPerSec *= 1.1},
+  {id:'dark_matter',  icon:'🌑', name:'Dark Matter',     desc:'×2 toda a prod./s',
+   baseCost:50000,costMult:1.5,  maxLv:8,  effect:g=>g.dustPerSec *= 2},
+  {id:'singularity',  icon:'✨', name:'Singularity',     desc:'+200 Dust/toque',
+   baseCost:250000,costMult:1.6, maxLv:5,  effect:g=>g.clickPower += 200},
+];
+
+const STELLAR_UPGRADES = [
+  {id:'stellar_boost', icon:'🌟', name:'Stellar Boost',   desc:'×1.5 todo Dust para sempre',
+   cost:1, effect:g=>g.stellarMult *= 1.5, purchased:false},
+  {id:'stellar_power', icon:'💥', name:'Stellar Power',   desc:'×2 todo Dust para sempre',
+   cost:3, effect:g=>g.stellarMult *= 2, purchased:false},
+  {id:'cosmic_heart',  icon:'❤️', name:'Cosmic Heart',    desc:'×3 todo Dust para sempre',
+   cost:8, effect:g=>g.stellarMult *= 3, purchased:false},
+  {id:'galactic_will', icon:'🌌', name:'Galactic Will',   desc:'×5 todo Dust para sempre',
+   cost:20, effect:g=>g.stellarMult *= 5, purchased:false},
+  {id:'universal_eye', icon:'👁️', name:'Universal Eye',   desc:'×10 todo Dust para sempre',
+   cost:50, effect:g=>g.stellarMult *= 10, purchased:false},
+  {id:'big_bang',      icon:'💫', name:'Big Bang',        desc:'×25 todo Dust para sempre',
+   cost:150, effect:g=>g.stellarMult *= 25, purchased:false},
+];
+
+// ============================================================
+//  MATH HELPERS
+// ============================================================
+function fmt(n){
+  if(!GS.settings.notation||n<1e4) return Math.floor(n).toLocaleString('pt-BR');
+  const suffixes=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc'];
+  const i = Math.floor(Math.log10(n)/3);
+  if(i<suffixes.length) return (n/Math.pow(10,i*3)).toFixed(2)+suffixes[i];
+  return n.toExponential(2).replace('e+','e');
+}
+
+function upgradeCost(up, lvl){
+  return Math.floor(up.baseCost * Math.pow(up.costMult, lvl));
+}
+
+function calcStats(){
+  GS.clickPower = 1;
+  GS.dustPerSec = 0;
+  UPGRADES.forEach(up=>{
+    const lv = GS.upgrades[up.id]||0;
+    for(let i=0;i<lv;i++) up.effect(GS);
+  });
+  // apply stellar multiplier
+  GS.clickPower *= GS.stellarMult;
+  GS.dustPerSec *= GS.stellarMult;
+}
+
+// ============================================================
+//  UI HELPERS
+// ============================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function spawnFloat(x, y, val){
+  if(!GS.settings.particles) return;
+  const el = document.createElement('div');
+  el.className = 'float-num';
+  el.textContent = '+'+fmt(val);
+  el.style.left  = (x - 20) + 'px';
+  el.style.top   = (y - 10) + 'px';
+  document.body.appendChild(el);
+  el.addEventListener('animationend',()=>el.remove());
+}
+
+// ============================================================
+//  PRESTIGE LOGIC
+// ============================================================
+function calcPrestigeReward(){
+  // reward = floor(sqrt(totalDust / 1e6))
+  return Math.max(0, Math.floor(Math.sqrt(GS.totalDust / 1e6)));
+}
+
+function doPrestige(){
+  const reward = calcPrestigeReward();
+  if(reward <= 0){ showToast('Acumule mais Dust para prestigiar!'); return; }
+
+  GS.stellar += reward;
+  GS.prestigeCount++;
+  GS.dust = 0;
+  GS.totalDust = 0;
+  GS.upgrades  = {};
+
+  // re-apply stellar upgrades
+  GS.stellarMult = 1;
+  STELLAR_UPGRADES.forEach(su=>{
+    if(GS.stellarUpgrades[su.id]) su.effect(GS);
+  });
+
+  calcStats();
+  renderAll();
+  showToast(`✨ Prestígio! +${reward} Stellar Energy`);
+  document.getElementById('prestige-overlay').classList.remove('show');
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function renderTopBar(){
+  document.getElementById('dust-val').textContent    = fmt(GS.dust);
+  document.getElementById('dust-rate').textContent   = '+'+fmt(GS.dustPerSec)+' /s';
+  document.getElementById('stellar-val').textContent = fmt(GS.stellar);
+  document.getElementById('prestige-count').textContent = 'Prestígios: '+GS.prestigeCount;
+  document.getElementById('cps-display').textContent = fmt(GS.clickPower)+' Dust/toque';
+}
+
+function renderUpgrades(){
+  const panel = document.getElementById('upgrades-panel');
+  panel.innerHTML = '';
+  UPGRADES.forEach(up=>{
+    const lv    = GS.upgrades[up.id]||0;
+    const maxed = lv >= up.maxLv;
+    const cost  = maxed ? 0 : upgradeCost(up, lv);
+    const canAfford = !maxed && GS.dust >= cost;
+    const pct = Math.min(100,(lv/up.maxLv)*100);
+
+    const card = document.createElement('div');
+    card.className = 'upgrade-card'+(maxed?' maxed':canAfford?' affordable':'');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-icon">${up.icon}</span>
+        <span class="upgrade-name">${up.name}</span>
+      </div>
+      <div class="upgrade-desc">${up.desc}</div>
+      <div class="upgrade-cost">${maxed?'✅ MAX':'☁️ '+fmt(cost)}</div>
+      <div class="upgrade-level">
+        Lv ${lv}/${up.maxLv}
+        <div class="lv-bar"><div class="lv-fill" style="width:${pct}%"></div></div>
+      </div>`;
+
+    if(!maxed) card.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      if(GS.dust >= upgradeCost(up, GS.upgrades[up.id]||0)){
+        GS.dust -= upgradeCost(up, GS.upgrades[up.id]||0);
+        GS.upgrades[up.id] = (GS.upgrades[up.id]||0)+1;
+        calcStats();
+        renderAll();
+        showToast(`${up.icon} ${up.name} Lv${GS.upgrades[up.id]}!`);
+      } else { showToast('Dust insuficiente!'); }
+    });
+    panel.appendChild(card);
+  });
+}
+
+function renderStellar(){
+  const panel = document.getElementById('stellar-panel');
+  panel.innerHTML = '';
+  STELLAR_UPGRADES.forEach(su=>{
+    const purchased = !!GS.stellarUpgrades[su.id];
+    const canAfford = !purchased && GS.stellar >= su.cost;
+    const locked    = !purchased && GS.stellar < su.cost && GS.prestigeCount === 0;
+
+    const card = document.createElement('div');
+    card.className = 'stellar-card'+(purchased?' purchased':canAfford?' affordable':locked?' locked':'');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-icon">${su.icon}</span>
+        <span class="upgrade-name">${su.name}</span>
+      </div>
+      <div class="upgrade-desc">${su.desc}</div>
+      <div class="upgrade-cost gold">${purchased?'✅ COMPRADO':'🌟 '+su.cost}</div>`;
+
+    if(!purchased) card.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      if(GS.stellar >= su.cost){
+        GS.stellar -= su.cost;
+        GS.stellarUpgrades[su.id] = true;
+        su.effect(GS);
+        calcStats();
+        renderAll();
+        showToast(`${su.icon} ${su.name} ativado!`);
+      } else { showToast('Stellar Energy insuficiente!'); }
+    });
+    panel.appendChild(card);
+  });
+}
+
+function renderAll(){
+  renderTopBar();
+  renderUpgrades();
+  renderStellar();
+  patchedSave();
+}
+
+// ============================================================
+//  ACTIVE TAB LOGIC (panels show/hide)
+// ============================================================
+let activeTab = 'upgrades';
+function setTab(tab){
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===tab||
+      (tab==='prestige'&&b.dataset.tab==='prestige'));
+  });
+  const up = document.getElementById('upgrades-panel');
+  const st = document.getElementById('stellar-panel');
+
+  if(tab==='upgrades'){
+    up.style.display='flex'; st.style.display='none';
+  } else if(tab==='stellar'){
+    up.style.display='none'; st.style.display='flex';
+  } else if(tab==='prestige'){
+    up.style.display='flex'; st.style.display='flex';
+    // show prestige modal
+    const reward = calcPrestigeReward();
+    document.getElementById('prestige-reward-text').textContent = '+'+reward+' ⭐ Stellar Energy';
+    document.getElementById('prestige-overlay').classList.add('show');
+  }
+}
+
+// ============================================================
+//  GAME LOOP
+// ============================================================
+let lastTime = 0;
+function gameLoop(ts){
+  const dt = Math.min((ts - lastTime)/1000, 0.5);
+  lastTime = ts;
+  if(document.getElementById('game-screen').classList.contains('active')){
+    const gain = GS.dustPerSec * dt;
+    GS.dust += gain;
+    GS.totalDust += gain;
+    renderTopBar();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+//  SAVE / LOAD
+//  NOTE: saveGame is a stub — full implementation is patchedSave()
+//  defined later, which adds lastSave + dustPerSecSnapshot.
+// ============================================================
+function saveGame(){ if(typeof patchedSave==='function') patchedSave(); }
+
+function loadGame(){
+  try {
+    const raw = localStorage.getItem('ccc_save');
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    GS.dust         = d.dust||0;
+    GS.totalDust    = d.totalDust||0;
+    GS.stellar      = d.stellar||0;
+    GS.prestigeCount= d.prestigeCount||0;
+    GS.upgrades     = d.upgrades||{};
+    GS.stellarUpgrades = d.stellarUpgrades||{};
+    GS.settings     = Object.assign(GS.settings, d.settings||{});
+
+    // re-apply stellar purchased effects
+    STELLAR_UPGRADES.forEach(su=>{
+      if(GS.stellarUpgrades[su.id]) su.effect(GS);
+    });
+    calcStats();
+  } catch(e){}
+}
+
+// ============================================================
+//  EVENTS
+// ============================================================
+// Menu
+document.getElementById('btn-play').addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  showScreen('game-screen');
+  calcStats(); renderAll();
+  requestAnimationFrame(ts=>{lastTime=ts; requestAnimationFrame(gameLoop);});
+});
+document.getElementById('btn-settings').addEventListener('pointerdown', e=>{
+  e.preventDefault(); showScreen('settings-screen');
+});
+document.getElementById('btn-credits').addEventListener('pointerdown', e=>{
+  e.preventDefault(); showScreen('credits-screen');
+});
+document.getElementById('settings-close').addEventListener('pointerdown', e=>{
+  e.preventDefault(); showScreen('menu-screen');
+});
+document.getElementById('credits-close').addEventListener('pointerdown', e=>{
+  e.preventDefault(); showScreen('menu-screen');
+});
+document.getElementById('btn-back').addEventListener('pointerdown', e=>{
+  e.preventDefault(); showScreen('menu-screen'); patchedSave();
+});
+
+// Clicker
+const clickerBtn = document.getElementById('clicker-btn');
+clickerBtn.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  const gain = GS.clickPower;
+  GS.dust += gain;
+  GS.totalDust += gain;
+  spawnFloat(e.clientX, e.clientY, gain);
+  renderTopBar();
+});
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    setTab(btn.dataset.tab);
+  });
+});
+
+// Prestige overlay
+document.getElementById('btn-prestige-confirm').addEventListener('pointerdown', e=>{
+  e.preventDefault(); doPrestige();
+});
+document.getElementById('btn-prestige-cancel').addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  document.getElementById('prestige-overlay').classList.remove('show');
+});
+
+// Settings toggles
+function setupToggle(id, key){
+  const el = document.getElementById(id);
+  // init state
+  if(GS.settings[key]) el.classList.add('on'); else el.classList.remove('on');
+  el.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    GS.settings[key] = !GS.settings[key];
+    el.classList.toggle('on', GS.settings[key]);
+    if(key==='aurora'){
+      document.getElementById('aurora-bg').style.opacity = GS.settings.aurora?'1':'0';
+    }
+    saveGame();
+  });
+}
+setupToggle('toggle-particles','particles');
+setupToggle('toggle-aurora','aurora');
+setupToggle('toggle-sound','sound');
+setupToggle('toggle-notation','notation');
+
+// ============================================================
+//  OFFLINE EARNINGS SYSTEM
+// ============================================================
+const OFFLINE_CAP_SECONDS = 4 * 60 * 60; // 4h max
+const OFFLINE_MIN_SECONDS = 30;
+
+function fmtDuration(secs){
+  if(secs < 60)   return Math.floor(secs)+' segundos';
+  if(secs < 3600){const m=Math.floor(secs/60);return m+' minuto'+(m>1?'s':'');}
+  const h=Math.floor(secs/3600), m=Math.floor((secs%3600)/60);
+  return h+'h'+(m?' '+m+'min':'');
+}
+
+function runOfflineParticles(){
+  const canvas = document.getElementById('offline-particles');
+  const box    = canvas.parentElement;
+  canvas.width = box.offsetWidth; canvas.height = box.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  const pts = Array.from({length:45},()=>({
+    x: canvas.width/2+(Math.random()-.5)*80,
+    y: canvas.height/2+(Math.random()-.5)*30,
+    vx:(Math.random()-.5)*3.5, vy:(Math.random()-2)*2.8,
+    life:1, decay:.013+Math.random()*.02,
+    size:1.5+Math.random()*3,
+    hue:Math.random()<.6?45:200
+  }));
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    pts.forEach(p=>{
+      if(p.life<=0)return; alive=true;
+      p.x+=p.vx; p.y+=p.vy; p.vy+=.05; p.life-=p.decay;
+      ctx.globalAlpha=Math.max(0,p.life);
+      ctx.fillStyle=ctx.shadowColor='hsl('+p.hue+',100%,70%)';
+      ctx.shadowBlur=7;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
+    if(alive) requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function animateCounter(el, target, duration){
+  const start=performance.now();
+  (function step(now){
+    const t=Math.min((now-start)/duration,1);
+    const ease=1-Math.pow(1-t,3);
+    el.textContent=fmt(target*ease);
+    if(t<1) requestAnimationFrame(step);
+    else el.textContent=fmt(target);
+  })(start);
+}
+
+function checkOfflineEarnings(){
+  try{
+    const raw=localStorage.getItem('ccc_save');
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    if(!d.lastSave||!d.dustPerSecSnapshot||d.dustPerSecSnapshot<=0) return;
+    const elapsed=Math.floor((Date.now()-d.lastSave)/1000);
+    if(elapsed<OFFLINE_MIN_SECONDS) return;
+    const capped=Math.min(elapsed,OFFLINE_CAP_SECONDS);
+    const earned=d.dustPerSecSnapshot*capped;
+    if(earned<1) return;
+
+    GS.dust+=earned; GS.totalDust+=earned;
+
+    document.getElementById('offline-duration').textContent=
+      'Ausente por '+fmtDuration(elapsed);
+    document.getElementById('offline-rate-info').textContent=
+      fmt(d.dustPerSecSnapshot)+' /s durante a ausência';
+    if(elapsed>OFFLINE_CAP_SECONDS)
+      document.getElementById('offline-cap-note').classList.remove('hidden');
+
+    document.getElementById('offline-overlay').classList.add('show');
+    setTimeout(()=>{
+      runOfflineParticles();
+      animateCounter(document.getElementById('offline-amount'),earned,1400);
+    },80);
+  }catch(e){}
+}
+
+document.getElementById('btn-collect').addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  document.getElementById('offline-overlay').classList.remove('show');
+  document.getElementById('offline-cap-note').classList.add('hidden');
+  renderTopBar(); patchedSave(); showToast('☁️ Dust coletado!');
+});
+
+// ============================================================
+//  PATCHED SAVE (adds lastSave + dustPerSecSnapshot)
+// ============================================================
+function patchedSave(){
+  try{
+    localStorage.setItem('ccc_save', JSON.stringify({
+      dust:GS.dust, totalDust:GS.totalDust,
+      stellar:GS.stellar, prestigeCount:GS.prestigeCount,
+      upgrades:GS.upgrades, stellarUpgrades:GS.stellarUpgrades,
+      settings:GS.settings,
+      lastSave:Date.now(),
+      dustPerSecSnapshot:GS.dustPerSec
+    }));
+  }catch(e){}
+}
+// Replace all saveGame calls with patchedSave going forward
+window.saveGame = patchedSave;
+
+// Auto-save every 10s (patched version)
+setInterval(patchedSave, 10000);
+
+// Save on page hide (phone lock / tab switch)
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) patchedSave(); });
+window.addEventListener('pagehide', patchedSave);
+
+// ============================================================
+//  INIT
+// ============================================================
+loadGame();
+checkOfflineEarnings(); // must run BEFORE calcStats so DPS is correct
+calcStats();
+renderUpgrades();
+renderStellar();
+renderTopBar();
+
+// Apply loaded aurora setting
+if(!GS.settings.aurora) document.getElementById('aurora-bg').style.opacity='0';
+
+// Stamp initial lastSave + DPS snapshot immediately
+patchedSave();
+</script>
+</body>
+</html>
